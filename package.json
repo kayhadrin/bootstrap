@@ -4,8 +4,10 @@
   "version": "0.13.4-1",
   "homepage": "http://angular-ui.github.io/bootstrap/",
   "dependencies": {},
+  "private": false,
   "scripts":{
-    "test": "grunt"
+    "clean": "rm -rf ./dist",
+    "prepublish": "npm run clean && grunt default build"
   },
   "repository": {
     "type": "git",
