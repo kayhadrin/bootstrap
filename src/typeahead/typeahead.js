@@ -146,7 +146,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
         };
 
         var isDisabledMatch = function(match) {
-          return (disabledMatchProperty != null) && !!match.model[disabledMatchProperty];
+          return (disabledMatchProperty != null) && match && !!match.model[disabledMatchProperty];
         };
 
         var getMatchId = function(index) {
