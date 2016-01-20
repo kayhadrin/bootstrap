@@ -456,5 +456,16 @@ module.exports = function(grunt) {
     });
   });
 
+  grunt.registerTask('generateModuleIndex', 'Generate the customised dist/index.js file', function() {
+    var indexSource = fs.readFileSync('./index.js', {encoding: 'utf8'}).toString(),
+      moduleVersionPattern = /%version%/gm,
+      newIndexFilePath = './dist/index.js';
+
+    indexSource = indexSource.replace(moduleVersionPattern, require('./package.json').version);
+    fs.writeFileSync(newIndexFilePath.toString(), indexSource, { encoding: 'utf8' });
+
+    grunt.log.ok('generateModuleIndex: written new index file in ' + newIndexFilePath.cyan);
+  });
+
   return grunt;
 };
