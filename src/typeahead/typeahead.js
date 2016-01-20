@@ -517,7 +517,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
         scope.selectMatch = function(activeIdx, event) {
           if (!isMatchDisabled(activeIdx)) {
             scope.select({activeIdx:activeIdx});
-          } else {
+          } else { // if it's a disabled match, don't close the list of matches
             event.preventDefault();
             event.stopPropagation();
           }
