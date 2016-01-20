@@ -6,6 +6,7 @@
   "dependencies": {},
   "private": false,
   "scripts":{
+    "test": "grunt",
     "clean": "rm -rf ./dist",
     "prepublish": "npm run clean && grunt default build generateModuleIndex"
   },
