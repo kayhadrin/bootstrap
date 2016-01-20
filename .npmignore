@@ -36,6 +36,7 @@ CONTRIBUTING.md
 Gruntfile.js
 karma.conf.js
 ROADMAP.md
+index.js
 
 dist/assets
 
