@@ -38,3 +38,6 @@ karma.conf.js
 ROADMAP.md
 
 dist/assets
+
+# editors
+.idea
