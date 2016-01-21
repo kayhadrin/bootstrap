@@ -386,6 +386,25 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
           }
         };
 
+        var getMatchElements = function() {
+          return popUpEl.children();
+        };
+
+        var getActiveMatchElement = function() {
+          return getMatchElements()[scope.activeIdx];
+        };
+
+        // Solution inspired by https://github.com/angular-ui/bootstrap/commit/a1355e7
+        // We haven't used it yet
+        var scrollToActiveMatchElement = function() {
+          var activeElement = getActiveMatchElement();
+          if (activeElement) {
+            // Note: only works in WebKit at this time of writing
+            // @see https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoViewIfNeeded
+            activeElement.scrollIntoViewIfNeeded(false);
+          }
+        };
+
         //bind keyboard events: arrows up(38) / down(40), enter(13) and tab(9), esc(27)
         element.bind('keydown', function(evt) {
           //typeahead is open and an "interesting" key was pressed
@@ -406,12 +425,14 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
             do {
               scope.activeIdx = (scope.activeIdx + 1) % scope.matches.length;
             } while(isDisabledMatch(scope.matches[scope.activeIdx]));
+            scrollToActiveMatchElement();
             scope.$digest();
 
           } else if (evt.which === 38) { // top arrow
             do {
               scope.activeIdx = (scope.activeIdx > 0 ? scope.activeIdx : scope.matches.length) - 1;
             } while(isDisabledMatch(scope.matches[scope.activeIdx]));
+            scrollToActiveMatchElement();
             scope.$digest();
 
           } else if (evt.which === 13 || evt.which === 9) { // enter or tab
