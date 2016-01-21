@@ -354,7 +354,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
           }
         });
 
-        scope.select = function(activeIdx, nextTabDirection) {
+        scope.select = function(activeIdx, triggerOrigin) {
           //called from within the $digest() cycle
           var locals = {};
           var curMatch = scope.matches[activeIdx];
@@ -381,73 +381,10 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
 
           //return focus to the input element if a match was selected via a mouse click event
           // use timeout to avoid $rootScope:inprog error
-          if (scope.$eval(attrs.typeaheadFocusOnSelect) !== false) {
+          if (scope.$eval(attrs.typeaheadFocusOnSelect) !== false && triggerOrigin !== 'enter_or_tab') {
             $timeout(function() {
-              ////////
-              var getTabIndexVal = function(elem) {
-                var curTabIndex = elem.attr('tabindex');
-                return !isNaN(curTabIndex) ? +curTabIndex : 0;
-              };
-
-              var getTabbableSiblingElement = function (startElement, direction) {
-                var tabbableElements = [].slice.call($(':tabbable')),
-                  curTabIndex = getTabIndexVal(startElement),
-                  nextElemOffset;
-
-                if (curTabIndex <= 0) {
-                  // then the next element is the next tabbable sibling
-
-                  // keep only elements that tabbable at the default level
-                  tabbableElements = tabbableElements.filter(function (elem) {
-                    return getTabIndexVal($(elem)) === 0;
-                  });
-
-                } else {
-                  // then the next element is the next sibling of the same or greater tabindex group
-                  tabbableElements = tabbableElements.map(function(elem, i) {
-                    return {
-                      elem: elem,
-                      absIndex: i++,
-                      tabIndex: getTabIndexVal($(elem))
-                    };
-                  }).filter(function(data) {
-                    return data.tabIndex >= curTabIndex;
-                  }).sort(function(left, right) {
-                    // group elements by ascending tabIndex and ascending absolute index
-                    if (left.tabIndex === right.tabIndex) {
-                      return left.absIndex - right.absIndex;
-                    } else {
-                      return left.tabIndex - right.tabIndex;
-                    }
-                  }).map(function(data){
-                    return data.elem;
-                  });
-                }
-
-                switch (direction) {
-                  case 'next':
-                    nextElemOffset = 1;
-                    break;
-                  case 'previous':
-                    nextElemOffset = -1;
-                    break;
-                  default:
-                    throw new Error('Unknown direction value=' + direction);
-                }
-
-                var curElemIndex = tabbableElements.indexOf(startElement[0]);
-                return $(tabbableElements[(curElemIndex + nextElemOffset) % tabbableElements.length]);
-              };
-
-              var $ = global.jQuery;
-              // if we have jQuery UI and we need to focus on the next/previous tabbable element
-              if (nextTabDirection && $ && $.ui) {
-                getTabbableSiblingElement(element, nextTabDirection)[0].focus();
-              } else {
-                element[0].focus();
-              }
-              ////////
-            }, 0, false); // end of $timeout
+              element[0].focus();
+            }, 0, false);
           }
         };
 
@@ -484,7 +421,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
             return;
           }
 
-          evt.preventDefault();
+          var shouldPreventDefault = true;
 
           if (evt.which === 40) { // bottom arrow
             do {
@@ -502,14 +439,18 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
 
           } else if (evt.which === 13 || evt.which === 9) { // enter or tab
             scope.$apply(function () {
-              scope.select(scope.activeIdx, evt.shiftKey ? 'previous' : 'next');
+              scope.select(scope.activeIdx, 'enter_or_tab');
             });
-
+            shouldPreventDefault = false;
           } else if (evt.which === 27) { // escape
             evt.stopPropagation();
 
             resetMatches();
             scope.$digest();
+          }
+
+          if (shouldPreventDefault) {
+            evt.preventDefault();
           }
         });
 
