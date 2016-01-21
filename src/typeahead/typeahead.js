@@ -73,6 +73,9 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
         //If input matches an item of the list exactly, select it automatically
         var selectOnExact = attrs.typeaheadSelectOnExact ? originalScope.$eval(attrs.typeaheadSelectOnExact) : false;
 
+        //property name of the match model that should be used to detect that current match is disabled
+        var disabledMatchProperty = originalScope.$eval(attrs.typeaheadDisabledMatchProperty);
+
         //INTERNAL VARIABLES
 
         //model setter executed upon match selection
@@ -101,9 +104,11 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
         //with typeahead-specific data (matches, query etc.)
         var scope = originalScope.$new();
         var offDestroy = originalScope.$on('$destroy', function() {
-			    scope.$destroy();
+          scope.$destroy();
         });
         scope.$on('$destroy', offDestroy);
+
+        scope.disabledMatchProperty = disabledMatchProperty; // expose this to the current scope
 
         // WAI-ARIA
         var popupId = 'typeahead-' + scope.$id + '-' + Math.floor(Math.random() * 10000);
@@ -122,6 +127,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
           select: 'select(activeIdx)',
           'move-in-progress': 'moveInProgress',
           query: 'query',
+          'disabled-match-property': 'disabledMatchProperty',
           position: 'position'
         });
         //custom item template
@@ -137,6 +143,10 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
           scope.matches = [];
           scope.activeIdx = -1;
           element.attr('aria-expanded', false);
+        };
+
+        var isDisabledMatch = function(match) {
+          return (disabledMatchProperty != null) && match && !!match.model[disabledMatchProperty];
         };
 
         var getMatchId = function(index) {
@@ -172,7 +182,6 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
             if (onCurrentRequest && hasFocus) {
               if (matches && matches.length > 0) {
 
-                scope.activeIdx = focusFirst ? 0 : -1;
                 isNoResultsSetter(originalScope, false);
                 scope.matches.length = 0;
 
@@ -184,6 +193,18 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
                     label: parserResult.viewMapper(scope, locals),
                     model: matches[i]
                   });
+                }
+
+                if (focusFirst) {
+                  // detect the first available non-disabled match index
+                  for (var j = 0, len = scope.matches.length; j < len; j++) {
+                    if (!isDisabledMatch(scope.matches[j])) {
+                      scope.activeIdx = j;
+                      break;
+                    }
+                  }
+                } else {
+                  scope.activeIdx = -1;
                 }
 
                 scope.query = inputValue;
@@ -336,10 +357,15 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
         scope.select = function(activeIdx) {
           //called from within the $digest() cycle
           var locals = {};
+          var curMatch = scope.matches[activeIdx];
           var model, item;
 
+          if (isDisabledMatch(curMatch)) {
+            return;
+          }
+
           selected = true;
-          locals[parserResult.itemName] = item = scope.matches[activeIdx].model;
+          locals[parserResult.itemName] = item = curMatch.model;
           model = parserResult.modelMapper(originalScope, locals);
           $setModelValue(originalScope, model);
           modelCtrl.$setValidity('editable', true);
@@ -376,20 +402,24 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
 
           evt.preventDefault();
 
-          if (evt.which === 40) {
-            scope.activeIdx = (scope.activeIdx + 1) % scope.matches.length;
+          if (evt.which === 40) { // bottom arrow
+            do {
+              scope.activeIdx = (scope.activeIdx + 1) % scope.matches.length;
+            } while(isDisabledMatch(scope.matches[scope.activeIdx]));
             scope.$digest();
 
-          } else if (evt.which === 38) {
-            scope.activeIdx = (scope.activeIdx > 0 ? scope.activeIdx : scope.matches.length) - 1;
+          } else if (evt.which === 38) { // top arrow
+            do {
+              scope.activeIdx = (scope.activeIdx > 0 ? scope.activeIdx : scope.matches.length) - 1;
+            } while(isDisabledMatch(scope.matches[scope.activeIdx]));
             scope.$digest();
 
-          } else if (evt.which === 13 || evt.which === 9) {
+          } else if (evt.which === 13 || evt.which === 9) { // enter or tab
             scope.$apply(function () {
               scope.select(scope.activeIdx);
             });
 
-          } else if (evt.which === 27) {
+          } else if (evt.which === 27) { // escape
             evt.stopPropagation();
 
             resetMatches();
@@ -452,6 +482,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
         active: '=',
         position: '&',
         moveInProgress: '=',
+        disabledMatchProperty: '=',
         select: '&'
       },
       replace: true,
@@ -465,16 +496,31 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
           return scope.matches.length > 0;
         };
 
+        var isMatchDisabled = function (matchIdx) {
+          var disabledMatchProperty = scope.disabledMatchProperty;
+          if (disabledMatchProperty == null) {
+            return false;
+          }
+          return !!scope.matches[matchIdx].model[disabledMatchProperty];
+        };
+
         scope.isActive = function(matchIdx) {
-          return scope.active == matchIdx;
+          return !isMatchDisabled(matchIdx) && scope.active == matchIdx;
         };
 
         scope.selectActive = function(matchIdx) {
-          scope.active = matchIdx;
+          if (!isMatchDisabled(matchIdx)) {
+            scope.active = matchIdx;
+          }
         };
 
-        scope.selectMatch = function(activeIdx) {
-          scope.select({activeIdx:activeIdx});
+        scope.selectMatch = function(activeIdx, event) {
+          if (!isMatchDisabled(activeIdx)) {
+            scope.select({activeIdx:activeIdx});
+          } else { // if it's a disabled match, don't close the list of matches
+            event.preventDefault();
+            event.stopPropagation();
+          }
         };
       }
     };
