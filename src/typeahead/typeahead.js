@@ -354,7 +354,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
           }
         });
 
-        scope.select = function(activeIdx) {
+        scope.select = function(activeIdx, triggerOrigin) {
           //called from within the $digest() cycle
           var locals = {};
           var curMatch = scope.matches[activeIdx];
@@ -381,8 +381,10 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
 
           //return focus to the input element if a match was selected via a mouse click event
           // use timeout to avoid $rootScope:inprog error
-          if (scope.$eval(attrs.typeaheadFocusOnSelect) !== false) {
-            $timeout(function() { element[0].focus(); }, 0, false);
+          if (scope.$eval(attrs.typeaheadFocusOnSelect) !== false && triggerOrigin !== 'enter_or_tab') {
+            $timeout(function() {
+              element[0].focus();
+            }, 0, false);
           }
         };
 
@@ -419,7 +421,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
             return;
           }
 
-          evt.preventDefault();
+          var shouldPreventDefault = true;
 
           if (evt.which === 40) { // bottom arrow
             do {
@@ -437,14 +439,20 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
 
           } else if (evt.which === 13 || evt.which === 9) { // enter or tab
             scope.$apply(function () {
-              scope.select(scope.activeIdx);
+              scope.select(scope.activeIdx, 'enter_or_tab');
             });
-
+            if (evt.which === 9) { // tabbing to the next field should not be prevented
+              shouldPreventDefault = false;
+            }
           } else if (evt.which === 27) { // escape
             evt.stopPropagation();
 
             resetMatches();
             scope.$digest();
+          }
+
+          if (shouldPreventDefault) {
+            evt.preventDefault();
           }
         });
 
