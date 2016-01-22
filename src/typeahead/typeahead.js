@@ -441,7 +441,9 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
             scope.$apply(function () {
               scope.select(scope.activeIdx, 'enter_or_tab');
             });
-            shouldPreventDefault = false;
+            if (evt.which === 9) { // tabbing to the next field should not be prevented
+              shouldPreventDefault = false;
+            }
           } else if (evt.which === 27) { // escape
             evt.stopPropagation();
 
