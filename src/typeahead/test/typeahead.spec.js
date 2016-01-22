@@ -68,6 +68,7 @@ describe('typeahead tests', function() {
     var e = $.Event('keydown');
     e.which = keyCode;
     inputEl.trigger(e);
+    return e;
   };
 
   //custom matchers
@@ -577,6 +578,13 @@ describe('typeahead tests', function() {
       // Up arrow key goes back to first element
       triggerKeyDown(element, 38);
       expect(element).toBeOpenWithActive(2, 0);
+    });
+
+    it('should allow to focus on the next tabbable element after pressing tab', function () {
+      changeInputValueTo(element, 'b');
+
+      var evt = triggerKeyDown(element, 9); // tab key
+      expect(evt.isDefaultPrevented()).toBe(false);
     });
 
     it('should close popup on escape key', function() {
