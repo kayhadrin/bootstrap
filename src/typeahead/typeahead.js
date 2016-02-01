@@ -30,7 +30,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
 
   .directive('typeahead', ['$compile', '$parse', '$q', '$timeout', '$document', '$window', '$rootScope', '$position', 'typeaheadParser',
     function($compile, $parse, $q, $timeout, $document, $window, $rootScope, $position, typeaheadParser) {
-    var HOT_KEYS = [9, 13, 27, 38, 40];
+    var HOT_KEYS = [9, 13, 27, 32, 38, 40];
     var eventDebounceTime = 200;
 
     return {
@@ -76,6 +76,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
         //property name of the match model that should be used to detect that current match is disabled
         var disabledMatchProperty = originalScope.$eval(attrs.typeaheadDisabledMatchProperty);
 
+        var useSpaceForSelection = originalScope.$eval(attrs.typeaheadUseSpaceForSelection);
         //INTERNAL VARIABLES
 
         //model setter executed upon match selection
@@ -109,7 +110,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
         scope.$on('$destroy', offDestroy);
 
         scope.disabledMatchProperty = disabledMatchProperty; // expose this to the current scope
-
+        scope.useSpaceForSelection = useSpaceForSelection;
         // WAI-ARIA
         var popupId = 'typeahead-' + scope.$id + '-' + Math.floor(Math.random() * 10000);
         element.attr({
@@ -449,6 +450,14 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
 
             resetMatches();
             scope.$digest();
+          } else if (evt.which === 32 && scope.useSpaceForSelection && scope.activeIdx !== -1) { // space
+            evt.stopPropagation();
+            scope.$apply(function () {
+              scope.select(scope.activeIdx, 'space');
+              scope.activeIdx = -1
+            });
+          } else {
+            shouldPreventDefault = false;
           }
 
           if (shouldPreventDefault) {
